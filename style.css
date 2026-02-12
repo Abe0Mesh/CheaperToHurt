@@ -1,0 +1,80 @@
+body {
+    background: #f8f8f8;
+    color: #111;
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    text-align: center;
+  }
+  
+  h1 {
+    font-size: 42px;
+    font-weight: 500;
+    margin-top: 40px;
+    margin-bottom: 10px;
+  }
+  
+  .intro {
+    max-width: 750px;
+    margin: 10px auto 40px auto;
+    font-size: 18px;
+    line-height: 1.6;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: #333;
+  }
+  
+  .layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    margin-bottom: 60px;
+  }
+  
+  #map {
+    flex-shrink: 0;
+  }
+  
+  #info-panel {
+    width: 360px;
+    min-height: 200px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+  }
+  
+  .card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    width: 100%;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.4s ease;
+  }
+  
+  .card.visible {
+    opacity: 1;
+    transform: translateX(0px);
+  }
+  
+  .card h2 {
+    margin-top: 0;
+    font-family: Georgia, serif;
+    font-weight: 500;
+  }
+  
+  .card hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 15px 0;
+  }
+  
+  .burden {
+    font-size: 20px;
+    font-weight: 600;
+    color: #b22222;
+    margin-top: 10px;
+  }
+  
