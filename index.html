@@ -1,30 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Millions Without Coverage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How Protected Are Americans From a Medical Bill?</title>
   <link rel="stylesheet" href="style.css">
-
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/topojson@3"></script>
 </head>
-
 <body>
+  <main class="page">
+    <header class="masthead">
+      <p class="kicker">Health Costs in America</p>
+      <h1>How Protected Are Americans From a Medical Bill?</h1>
+      <p class="intro">
+        A single emergency room visit averages about <strong>$2,400</strong>. In some states,
+        that bill would absorb far more of a typical month&rsquo;s income than in others. This map
+        shows where the financial shock of getting sick may hit hardest.
+      </p>
+    </header>
 
-  <h1>Millions Without Coverage</h1>
+    <section class="layout">
+      <div class="map-column">
+        <div class="map-header">
+          <p class="section-label">Map shaded by</p>
+          <h2>ER visit cost as a share of median monthly income</h2>
+        </div>
+        <div id="map"></div>
+        <div id="legend" class="legend"></div>
+        <p class="note">
+          Burden is estimated as a <strong>$2,400</strong> ER visit divided by each state&rsquo;s median
+          household income converted to a monthly figure. Supporting figures come from 2024 ACS tables
+          <strong>S2701</strong>, <strong>S1701</strong>, and <strong>B19013</strong>.
+        </p>
+      </div>
 
-  <p class="intro">
-    The average emergency room visit in the United States costs approximately 
-    <strong>$2,400</strong>. In many states, a single emergency can consume a significant 
-    portion of a household’s monthly income — especially for those without insurance.
-  </p>
-
-  <div class="layout">
-    <div id="map"></div>
-    <div id="info-panel"></div>
-  </div>
+      <aside id="info-panel" class="info-panel"></aside>
+    </section>
+  </main>
 
   <script src="script.js"></script>
-
 </body>
 </html>
