@@ -103,6 +103,42 @@ h1 {
   line-height: 1.15;
 }
 
+.controls {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  align-items: end;
+}
+
+.control {
+  display: grid;
+  gap: 6px;
+}
+
+.control-label {
+  font: 700 11px/1.2 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.control-input {
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.85);
+  font: 500 14px/1.2 "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+}
+
+.control-note {
+  margin: 0;
+  font: 500 13px/1.35 "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+}
+
 #map {
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid rgba(215, 208, 199, 0.9);
@@ -201,6 +237,49 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 22px 0;
+}
+
+.chart-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.chart-title {
+  margin: 0;
+  font: 700 11px/1.2 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.chart-select {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: rgba(255, 255, 255, 0.85);
+  font: 500 13px/1.2 "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+}
+
+.chart-meta {
+  margin: 10px 0 0;
+  font: 500 13px/1.5 "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+}
+
+.fred-chart {
+  margin-top: 10px;
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 .metric {

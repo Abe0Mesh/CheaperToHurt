@@ -25,13 +25,27 @@
         <div class="map-header">
           <p class="section-label">Map shaded by</p>
           <h2>ER visit cost as a share of median monthly income</h2>
+          <div class="controls" role="group" aria-label="ER cost adjustment controls">
+            <label class="control">
+              <span class="control-label">Adjust $2,400 for inflation</span>
+              <select id="er-adjust" class="control-input">
+                <option value="none">No adjustment</option>
+                <option value="cpi_u" selected>CPI-U (all items)</option>
+                <option value="cpi_medical">CPI medical care</option>
+              </select>
+            </label>
+            <p class="control-note">
+              Live from FRED. Latest month: <span id="fred-latest-date">—</span>
+            </p>
+          </div>
         </div>
         <div id="map"></div>
         <div id="legend" class="legend"></div>
         <p class="note">
-          Burden is estimated as a <strong>$2,400</strong> ER visit divided by each state&rsquo;s median
-          household income converted to a monthly figure. Supporting figures come from 2024 ACS tables
-          <strong>S2701</strong>, <strong>S1701</strong>, and <strong>B19013</strong>.
+          Burden is estimated as one ER visit (<strong><span id="er-cost-display">$2,400</span></strong>)
+          divided by each state&rsquo;s median household income converted to a monthly figure. Supporting
+          figures come from 2024 ACS tables <strong>S2701</strong>, <strong>S1701</strong>, and
+          <strong>B19013</strong>.
         </p>
       </div>
 

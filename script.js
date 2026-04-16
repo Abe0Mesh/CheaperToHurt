@@ -1,6 +1,12 @@
 const width = 960;
 const height = 620;
-const ER_COST = 2400;
+const BASE_ER_COST = 2400;
+const CPI_BASELINE_YEAR = 2024;
+const FRED_SERIES = {
+  cpi_u: { id: "CPIAUCSL", label: "CPI-U (all items)" },
+  cpi_medical: { id: "CUSR0000SAM", label: "CPI medical care" },
+  unrate: { id: "UNRATE", label: "Unemployment rate" }
+};
 
 const svg = d3.select("#map")
   .append("svg")
@@ -13,6 +19,17 @@ const projection = d3.geoAlbersUsa();
 const path = d3.geoPath().projection(projection);
 
 let lockedState = null;
+let statePaths = null;
+let statesFeatureCollection = null;
+
+let rawStateData = [];
+let rankedStateData = [];
+let stateDataMap = new Map();
+let colorScale = null;
+
+let currentErCost = BASE_ER_COST;
+let fredLatestDate = null;
+let fredSeriesData = new Map();
 
 function formatMoney(value) {
   return `$${d3.format(",")(Math.round(value))}`;
@@ -20,6 +37,10 @@ function formatMoney(value) {
 
 function formatPercent(value) {
   return `${d3.format(".1f")(value)}%`;
+}
+
+function formatMonthYear(date) {
+  return d3.timeFormat("%b %Y")(date);
 }
 
 function buildLegend(scale) {
@@ -76,7 +97,7 @@ function buildOverview(data) {
       </div>
       <div class="metric">
         <p class="metric-label">Typical ER bill</p>
-        <p class="metric-value">${formatMoney(ER_COST)}</p>
+        <p class="metric-value">${formatMoney(currentErCost)}</p>
         <p class="metric-detail">Used as the comparison benchmark throughout this map.</p>
       </div>
     </div>
@@ -98,7 +119,31 @@ function buildOverview(data) {
         `).join("")}
       </ol>
     </div>
+
+    <div class="chart-block" aria-label="Live economic indicators from FRED">
+      <div class="chart-head">
+        <p class="chart-title">Live indicator</p>
+        <select id="fred-series-select" class="chart-select" aria-label="Choose a FRED series">
+          <option value="cpi_u">CPI-U</option>
+          <option value="cpi_medical">CPI medical</option>
+          <option value="unrate">Unemployment</option>
+        </select>
+      </div>
+      <svg id="fred-chart" class="fred-chart" viewBox="0 0 360 130" role="img" aria-label="FRED time series chart"></svg>
+      <p class="chart-meta" id="fred-chart-meta">Loading live series…</p>
+    </div>
   `);
+
+  const seriesSelect = document.getElementById("fred-series-select");
+  if (seriesSelect) {
+    const savedSeries = localStorage.getItem("fred_series") || "cpi_u";
+    seriesSelect.value = savedSeries;
+    seriesSelect.addEventListener("change", () => {
+      localStorage.setItem("fred_series", seriesSelect.value);
+      renderFredChart(seriesSelect.value);
+    });
+    renderFredChart(savedSeries);
+  }
 }
 
 function buildStatePanel(datum) {
@@ -114,7 +159,7 @@ function buildStatePanel(datum) {
       <div class="metric">
         <p class="metric-label">ER burden</p>
         <p class="metric-value">${formatPercent(datum.burdenPct)}</p>
-        <p class="metric-detail">${formatMoney(ER_COST)} against a median month of ${formatMoney(datum.monthlyIncome)}.</p>
+        <p class="metric-detail">${formatMoney(currentErCost)} against a median month of ${formatMoney(datum.monthlyIncome)}.</p>
       </div>
       <div class="metric">
         <p class="metric-label">Median income</p>
@@ -148,7 +193,31 @@ function buildStatePanel(datum) {
         Click the state again, or choose another one, to keep comparing the map.
       </p>
     </div>
+
+    <div class="chart-block" aria-label="Live economic indicators from FRED">
+      <div class="chart-head">
+        <p class="chart-title">Live indicator</p>
+        <select id="fred-series-select" class="chart-select" aria-label="Choose a FRED series">
+          <option value="cpi_u">CPI-U</option>
+          <option value="cpi_medical">CPI medical</option>
+          <option value="unrate">Unemployment</option>
+        </select>
+      </div>
+      <svg id="fred-chart" class="fred-chart" viewBox="0 0 360 130" role="img" aria-label="FRED time series chart"></svg>
+      <p class="chart-meta" id="fred-chart-meta">Loading live series…</p>
+    </div>
   `);
+
+  const seriesSelect = document.getElementById("fred-series-select");
+  if (seriesSelect) {
+    const savedSeries = localStorage.getItem("fred_series") || "cpi_u";
+    seriesSelect.value = savedSeries;
+    seriesSelect.addEventListener("change", () => {
+      localStorage.setItem("fred_series", seriesSelect.value);
+      renderFredChart(seriesSelect.value);
+    });
+    renderFredChart(savedSeries);
+  }
 }
 
 function ordinalSuffix(value) {
@@ -167,49 +236,238 @@ function updateActiveState(selection, stateName = null) {
     .classed("is-active", d => stateName && d.properties.name === stateName);
 }
 
-Promise.all([
-  d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
-  d3.csv("data/medical_burden_states.csv", d => ({
-    state: d.state,
-    medianIncome: +d.median_income,
-    monthlyIncome: +d.monthly_income,
-    povertyRate: +d.poverty_rate,
-    povertyPopulation: +d.poverty_population,
-    uninsuredRate: +d.uninsured_rate,
-    uninsuredPopulation: +d.uninsured_population,
-    burdenPct: (ER_COST / +d.monthly_income) * 100
-  }))
-]).then(([us, rawData]) => {
-  const states = topojson.feature(us, us.objects.states);
-  projection.fitSize([width, height], states);
+function computeDerivedStateData(source, erCost) {
+  const withBurden = source.map(d => ({
+    ...d,
+    burdenPct: (erCost / d.monthlyIncome) * 100
+  }));
 
-  const rankedData = createRankings(rawData);
-  const dataMap = new Map(rankedData.map(d => [d.state, d]));
-  const burdenExtent = d3.extent(rankedData, d => d.burdenPct);
-  const color = d3.scaleLinear()
+  rankedStateData = createRankings(withBurden);
+  stateDataMap = new Map(rankedStateData.map(d => [d.state, d]));
+
+  const burdenExtent = d3.extent(rankedStateData, d => d.burdenPct);
+  colorScale = d3.scaleLinear()
     .domain(burdenExtent)
     .range(["#f4dfd3", "#8b2e1f"])
     .interpolate(d3.interpolateLab);
 
-  buildLegend(color);
-  buildOverview(rankedData);
+  buildLegend(colorScale);
 
-  const statePaths = g.selectAll("path")
-    .data(states.features)
+  const erCostDisplay = document.getElementById("er-cost-display");
+  if (erCostDisplay) erCostDisplay.textContent = formatMoney(erCost);
+
+  if (lockedState && stateDataMap.has(lockedState)) {
+    buildStatePanel(stateDataMap.get(lockedState));
+  } else {
+    buildOverview(rankedStateData);
+  }
+
+  if (statePaths && colorScale) {
+    statePaths
+      .transition()
+      .duration(450)
+      .attr("fill", d => {
+        const datum = stateDataMap.get(d.properties.name);
+        return datum ? colorScale(datum.burdenPct) : "#e5dfd6";
+      });
+  }
+}
+
+async function fetchFredSeriesCsv(seriesId) {
+  const proxied = `/api/fredgraph.csv?id=${encodeURIComponent(seriesId)}`;
+  const direct = `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${encodeURIComponent(seriesId)}`;
+
+  let text = null;
+  try {
+    text = await (await fetch(proxied, { cache: "no-store" })).text();
+  } catch (error) {
+    text = null;
+  }
+
+  if (!text) {
+    text = await (await fetch(direct, { cache: "no-store" })).text();
+  }
+
+  const parsed = d3.csvParse(text);
+  return parsed
+    .map(row => {
+      const date = new Date(row.date);
+      const raw = row[seriesId];
+      const value = raw === "." || raw === undefined || raw === "" ? null : +raw;
+      return Number.isFinite(date.getTime()) && Number.isFinite(value)
+        ? { date, value }
+        : { date, value: null };
+    })
+    .filter(d => d.value !== null)
+    .sort((a, b) => d3.ascending(a.date, b.date));
+}
+
+function yearAverage(series, year) {
+  const points = series.filter(d => d.date.getFullYear() === year);
+  return points.length ? d3.mean(points, d => d.value) : null;
+}
+
+function latestPoint(series) {
+  for (let i = series.length - 1; i >= 0; i -= 1) {
+    const point = series[i];
+    if (point && Number.isFinite(point.value)) return point;
+  }
+  return null;
+}
+
+function computeErCost(adjustMode) {
+  if (adjustMode === "none") return BASE_ER_COST;
+
+  const seriesKey = adjustMode === "cpi_medical" ? "cpi_medical" : "cpi_u";
+  const seriesMeta = FRED_SERIES[seriesKey];
+  const series = fredSeriesData.get(seriesMeta?.id);
+  if (!series || !series.length) return BASE_ER_COST;
+
+  const base = yearAverage(series, CPI_BASELINE_YEAR);
+  const latest = latestPoint(series);
+  if (!base || !latest) return BASE_ER_COST;
+
+  return BASE_ER_COST * (latest.value / base);
+}
+
+function syncFredLatestDate() {
+  const cpi = fredSeriesData.get(FRED_SERIES.cpi_u.id);
+  const latest = cpi ? latestPoint(cpi) : null;
+  if (!latest) return;
+
+  fredLatestDate = latest.date;
+  const latestEl = document.getElementById("fred-latest-date");
+  if (latestEl) latestEl.textContent = formatMonthYear(fredLatestDate);
+}
+
+function setLiveStatus(isLive) {
+  const latestEl = document.getElementById("fred-latest-date");
+  if (!latestEl) return;
+  if (isLive) return;
+  latestEl.textContent = "Unavailable (check server.js)";
+}
+
+function applyErCostFromUi() {
+  const select = document.getElementById("er-adjust");
+  const mode = select?.value || "none";
+  localStorage.setItem("er_adjust_mode", mode);
+  currentErCost = computeErCost(mode);
+  computeDerivedStateData(rawStateData, currentErCost);
+}
+
+function renderFredChart(seriesKey) {
+  const svgEl = document.getElementById("fred-chart");
+  const metaEl = document.getElementById("fred-chart-meta");
+  if (!svgEl || !metaEl) return;
+
+  const meta = FRED_SERIES[seriesKey] || FRED_SERIES.cpi_u;
+  const series = fredSeriesData.get(meta.id);
+  if (!series || series.length < 2) {
+    svgEl.innerHTML = "";
+    metaEl.textContent = "Live series unavailable.";
+    return;
+  }
+
+  const latest = latestPoint(series);
+  const start = d3.timeMonth.offset(latest.date, -120);
+  const windowed = series.filter(d => d.date >= start);
+  const values = windowed.map(d => d.value);
+
+  const innerWidth = 360;
+  const innerHeight = 130;
+  const margin = { top: 10, right: 12, bottom: 22, left: 38 };
+  const w = innerWidth - margin.left - margin.right;
+  const h = innerHeight - margin.top - margin.bottom;
+
+  const x = d3.scaleTime()
+    .domain(d3.extent(windowed, d => d.date))
+    .range([0, w]);
+
+  const y = d3.scaleLinear()
+    .domain(d3.extent(values))
+    .nice()
+    .range([h, 0]);
+
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.value))
+    .curve(d3.curveMonotoneX);
+
+  const formatY = seriesKey === "unrate"
+    ? d => `${d3.format(".1f")(d)}%`
+    : d => d3.format(".0f")(d);
+
+  svgEl.innerHTML = `
+    <rect x="0" y="0" width="${innerWidth}" height="${innerHeight}" rx="14" fill="rgba(255,255,255,0.55)"></rect>
+    <g transform="translate(${margin.left},${margin.top})">
+      <g class="axis axis--y"></g>
+      <g class="axis axis--x" transform="translate(0,${h})"></g>
+      <path class="series" fill="none" stroke="#8b2e1f" stroke-width="2.25" d="${line(windowed)}"></path>
+      <circle cx="${x(latest.date)}" cy="${y(latest.value)}" r="3.6" fill="#8b2e1f"></circle>
+    </g>
+  `;
+
+  const svgSelection = d3.select(svgEl);
+  const root = svgSelection.select("g");
+  root.select(".axis--y")
+    .call(d3.axisLeft(y).ticks(4).tickFormat(formatY))
+    .call(g => g.selectAll(".domain").remove())
+    .call(g => g.selectAll("line").attr("stroke", "rgba(0,0,0,0.12)"));
+
+  root.select(".axis--x")
+    .call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%Y")))
+    .call(g => g.selectAll(".domain").attr("stroke", "rgba(0,0,0,0.12)"))
+    .call(g => g.selectAll("line").attr("stroke", "rgba(0,0,0,0.12)"));
+
+  const latestLabel = seriesKey === "unrate"
+    ? `${d3.format(".1f")(latest.value)}%`
+    : d3.format(".1f")(latest.value);
+  metaEl.textContent = `${meta.label}: ${latestLabel} (${formatMonthYear(latest.date)})`;
+}
+
+async function init() {
+  const adjustSelect = document.getElementById("er-adjust");
+  if (adjustSelect) {
+    const savedMode = localStorage.getItem("er_adjust_mode") || "cpi_u";
+    adjustSelect.value = savedMode;
+    adjustSelect.addEventListener("change", () => applyErCostFromUi());
+  }
+
+  const [us, stateRows] = await Promise.all([
+    d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+    d3.csv("data/medical_burden_states.csv", d => ({
+      state: d.state,
+      medianIncome: +d.median_income,
+      monthlyIncome: +d.monthly_income,
+      povertyRate: +d.poverty_rate,
+      povertyPopulation: +d.poverty_population,
+      uninsuredRate: +d.uninsured_rate,
+      uninsuredPopulation: +d.uninsured_population
+    }))
+  ]);
+
+  statesFeatureCollection = topojson.feature(us, us.objects.states);
+  projection.fitSize([width, height], statesFeatureCollection);
+
+  rawStateData = stateRows;
+  computeDerivedStateData(rawStateData, currentErCost);
+
+  statePaths = g.selectAll("path")
+    .data(statesFeatureCollection.features)
     .enter()
     .append("path")
     .attr("class", "state")
     .attr("d", path)
     .attr("fill", d => {
-      const datum = dataMap.get(d.properties.name);
-      return datum ? color(datum.burdenPct) : "#e5dfd6";
+      const datum = stateDataMap.get(d.properties.name);
+      return datum ? colorScale(datum.burdenPct) : "#e5dfd6";
     })
     .attr("stroke", "#f7f3ed")
     .attr("stroke-width", 1)
     .attr("cursor", "pointer")
     .on("mouseenter", function(event, d) {
       if (lockedState) return;
-      const datum = dataMap.get(d.properties.name);
+      const datum = stateDataMap.get(d.properties.name);
       if (!datum) return;
       updateActiveState(statePaths, d.properties.name);
       buildStatePanel(datum);
@@ -217,17 +475,17 @@ Promise.all([
     .on("mouseleave", function() {
       if (lockedState) return;
       updateActiveState(statePaths, null);
-      buildOverview(rankedData);
+      buildOverview(rankedStateData);
     })
     .on("click", function(event, d) {
       const stateName = d.properties.name;
-      const datum = dataMap.get(stateName);
+      const datum = stateDataMap.get(stateName);
       if (!datum) return;
 
       if (lockedState === stateName) {
         lockedState = null;
         updateActiveState(statePaths, null);
-        buildOverview(rankedData);
+        buildOverview(rankedStateData);
         return;
       }
 
@@ -235,4 +493,24 @@ Promise.all([
       updateActiveState(statePaths, stateName);
       buildStatePanel(datum);
     });
-});
+
+  try {
+    const [cpiU, cpiMedical, unrate] = await Promise.all([
+      fetchFredSeriesCsv(FRED_SERIES.cpi_u.id),
+      fetchFredSeriesCsv(FRED_SERIES.cpi_medical.id),
+      fetchFredSeriesCsv(FRED_SERIES.unrate.id)
+    ]);
+    fredSeriesData.set(FRED_SERIES.cpi_u.id, cpiU);
+    fredSeriesData.set(FRED_SERIES.cpi_medical.id, cpiMedical);
+    fredSeriesData.set(FRED_SERIES.unrate.id, unrate);
+    syncFredLatestDate();
+    setLiveStatus(true);
+  } catch (error) {
+    // Live series is optional; keep the map usable offline.
+    setLiveStatus(false);
+  }
+
+  applyErCostFromUi();
+}
+
+init();
