@@ -139,6 +139,36 @@ h1 {
   color: var(--muted);
 }
 
+.control-status {
+  display: grid;
+  gap: 4px;
+}
+
+.status-pill {
+  width: fit-content;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font: 700 11px/1.2 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-pill--pending {
+  background: rgba(122, 104, 83, 0.12);
+  color: #7a6853;
+}
+
+.status-pill--live {
+  background: rgba(54, 108, 72, 0.12);
+  color: #2f6b44;
+}
+
+.status-pill--offline {
+  background: rgba(139, 46, 31, 0.12);
+  color: #8b2e1f;
+}
+
 #map {
   background: rgba(255, 255, 255, 0.35);
   border: 1px solid rgba(215, 208, 199, 0.9);

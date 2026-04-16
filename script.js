@@ -279,19 +279,27 @@ async function fetchFredSeriesCsv(seriesId) {
 
   let text = null;
   try {
-    text = await (await fetch(proxied, { cache: "no-store" })).text();
+    const response = await fetch(proxied, { cache: "no-store" });
+    if (response.ok) {
+      text = await response.text();
+    }
   } catch (error) {
     text = null;
   }
 
   if (!text) {
-    text = await (await fetch(direct, { cache: "no-store" })).text();
+    const response = await fetch(direct, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch FRED series ${seriesId}`);
+    }
+    text = await response.text();
   }
 
   const parsed = d3.csvParse(text);
-  return parsed
+  const normalized = parsed
     .map(row => {
-      const date = new Date(row.date);
+      const dateValue = row.observation_date || row.date;
+      const date = new Date(dateValue);
       const raw = row[seriesId];
       const value = raw === "." || raw === undefined || raw === "" ? null : +raw;
       return Number.isFinite(date.getTime()) && Number.isFinite(value)
@@ -300,6 +308,12 @@ async function fetchFredSeriesCsv(seriesId) {
     })
     .filter(d => d.value !== null)
     .sort((a, b) => d3.ascending(a.date, b.date));
+
+  if (!normalized.length) {
+    throw new Error(`No usable observations returned for ${seriesId}`);
+  }
+
+  return normalized;
 }
 
 function yearAverage(series, year) {
@@ -341,10 +355,17 @@ function syncFredLatestDate() {
 }
 
 function setLiveStatus(isLive) {
+  const statusEl = document.getElementById("fred-live-status");
   const latestEl = document.getElementById("fred-latest-date");
+
+  if (statusEl) {
+    statusEl.className = `status-pill ${isLive ? "status-pill--live" : "status-pill--offline"}`;
+    statusEl.textContent = isLive ? "Live FRED data connected" : "Live data unavailable";
+  }
+
   if (!latestEl) return;
   if (isLive) return;
-  latestEl.textContent = "Unavailable (check server.js)";
+  latestEl.textContent = "Unavailable";
 }
 
 function applyErCostFromUi() {

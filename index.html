@@ -34,9 +34,11 @@
                 <option value="cpi_medical">CPI medical care</option>
               </select>
             </label>
-            <p class="control-note">
-              Live from FRED. Latest month: <span id="fred-latest-date">—</span>
-            </p>
+            <div class="control-status" aria-live="polite">
+              <p class="control-note">Live from FRED</p>
+              <p class="status-pill status-pill--pending" id="fred-live-status">Checking live connection...</p>
+              <p class="control-note">Latest month: <span id="fred-latest-date">—</span></p>
+            </div>
           </div>
         </div>
         <div id="map"></div>
