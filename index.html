@@ -20,26 +20,34 @@
       </p>
     </header>
 
-    <section class="layout">
+    <section class="story-bridge" aria-labelledby="story-bridge-title">
+      <p class="story-kicker">A Real Story Behind The Numbers</p>
+      <h2 id="story-bridge-title">She asked strangers not to call an ambulance.</h2>
+      <p>
+        In June 2018 at a Boston subway station, a woman suffered a severe leg injury while trying to get off a train.
+        Witnesses said she begged people not to call an ambulance because she feared the cost, even while she was in clear pain.
+      </p>
+      <p>
+        The moment went viral because it captured a hard truth: in a medical emergency, many Americans weigh treatment against debt.
+        This map picks up from that question and shows where one ER bill could hit household budgets hardest.
+      </p>
+      <div class="story-stat">
+        <p class="story-stat-label">Why this still matters</p>
+        <p class="story-stat-value">About 1 in 6 adults reported delaying or skipping some care due to cost in 2024.</p>
+      </div>
+      <p class="story-source">
+        Reported by <a href="https://www.bostonglobe.com/metro/2018/07/02/woman-got-her-leg-caught-gap-orange-line-train-and-then-begged-for-ambulance-because-cost/q6gBPV8ujcfH0qLrQ6HjEJ/story.html" target="_blank" rel="noopener noreferrer">The Boston Globe</a>,
+        summarized by <a href="https://time.com/5330380/boston-commuters-free-woman-mbta/" target="_blank" rel="noopener noreferrer">TIME</a>,
+        and current access data from <a href="https://www.kff.org/health-costs/cost-of-insurance-and-its-affect-on-access-to-care-slideshow/" target="_blank" rel="noopener noreferrer">KFF (2026 update using 2024 NHIS)</a>.
+      </p>
+    </section>
+
+    <section class="layout layout--reveal">
       <div class="map-column">
         <div class="map-header">
           <p class="section-label">Map shaded by</p>
           <h2>ER visit cost as a share of median monthly income</h2>
-          <div class="controls" role="group" aria-label="ER cost adjustment controls">
-            <label class="control">
-              <span class="control-label">Adjust $2,400 for inflation</span>
-              <select id="er-adjust" class="control-input">
-                <option value="none">No adjustment</option>
-                <option value="cpi_u" selected>CPI-U (all items)</option>
-                <option value="cpi_medical">CPI medical care</option>
-              </select>
-            </label>
-            <div class="control-status" aria-live="polite">
-              <p class="control-note">Live from FRED</p>
-              <p class="status-pill status-pill--pending" id="fred-live-status">Checking live connection...</p>
-              <p class="control-note">Latest month: <span id="fred-latest-date">—</span></p>
-            </div>
-          </div>
+          <p class="control-note">Static annual snapshot using 2024 ACS coverage, poverty, and income tables.</p>
         </div>
         <div id="map"></div>
         <div id="legend" class="legend"></div>

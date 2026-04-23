@@ -70,11 +70,81 @@ h1 {
   color: #2e2a26;
 }
 
+.story-bridge {
+  max-width: 900px;
+  margin: 0 auto 30px;
+  padding: 22px 24px 24px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.62)),
+    radial-gradient(circle at 8% 14%, rgba(217, 143, 105, 0.22), transparent 42%);
+  box-shadow: 0 14px 30px rgba(50, 37, 26, 0.08);
+  animation: fadeRise 540ms ease-out both;
+}
+
+.story-kicker {
+  margin: 0 0 8px;
+  font: 700 11px/1.2 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8c3b2c;
+}
+
+.story-bridge h2 {
+  margin: 0;
+  font-size: clamp(28px, 4.5vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.story-bridge p {
+  margin: 14px 0 0;
+  font: 500 16px/1.7 "Helvetica Neue", Arial, sans-serif;
+  color: #2f2a26;
+}
+
+.story-stat {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-left: 3px solid #8b2e1f;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 8px;
+}
+
+.story-stat-label {
+  margin: 0;
+  font: 700 11px/1.2 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.story-stat-value {
+  margin: 6px 0 0;
+  font: 600 16px/1.5 "Helvetica Neue", Arial, sans-serif;
+}
+
+.story-source {
+  margin-top: 12px;
+  font: 500 13px/1.55 "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+}
+
+.story-source a {
+  color: #7d2e20;
+  text-underline-offset: 2px;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 420px);
   gap: 34px;
   align-items: start;
+}
+
+.layout--reveal {
+  animation: fadeRise 620ms ease-out 120ms both;
 }
 
 .map-column {
@@ -403,6 +473,24 @@ h1 {
   color: #3a342e;
 }
 
+@keyframes fadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-bridge,
+  .layout--reveal {
+    animation: none;
+  }
+}
+
 @media (max-width: 1080px) {
   .layout {
     grid-template-columns: 1fr;
@@ -420,6 +508,16 @@ h1 {
 
   .intro {
     font-size: 17px;
+  }
+
+  .story-bridge {
+    padding: 18px 16px 19px;
+    margin-bottom: 24px;
+  }
+
+  .story-bridge p,
+  .story-stat-value {
+    font-size: 15px;
   }
 
   .map-header h2 {
