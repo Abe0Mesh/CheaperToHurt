@@ -55,9 +55,13 @@ function buildOverview(data) {
   const burdenAverage = d3.mean(data, d => d.burdenPct);
   const uninsuredAverage = d3.mean(data, d => d.uninsuredRate);
   const povertyAverage = d3.mean(data, d => d.povertyRate);
-  const topBurden = [...data]
-    .sort((a, b) => d3.descending(a.burdenPct, b.burdenPct))
-    .slice(0, 5);
+  const sortedByBurden = [...data].sort((a, b) => d3.descending(a.burdenPct, b.burdenPct));
+  const topBurden = sortedByBurden.slice(0, 5);
+  const lowestBurden = [...sortedByBurden].reverse().slice(0, 5);
+  const highestState = sortedByBurden[0];
+  const lowestState = sortedByBurden[sortedByBurden.length - 1];
+  const burdenGapPoints = highestState.burdenPct - lowestState.burdenPct;
+  const burdenGapRatio = highestState.burdenPct / lowestState.burdenPct;
 
   d3.select("#info-panel").html(`
     <p class="panel-label">Overview</p>
@@ -96,16 +100,40 @@ function buildOverview(data) {
     </p>
 
     <div class="ranking-block">
-      <h3 class="ranking-title">Highest burden states</h3>
-      <ol class="ranking-list">
-        ${topBurden.map((d, index) => `
-          <li>
-            <span class="rank">${index + 1}</span>
-            <span class="state-name">${d.state}</span>
-            <span class="rank-value">${formatPercent(d.burdenPct)}</span>
-          </li>
-        `).join("")}
-      </ol>
+      <h3 class="ranking-title">Burden contrast snapshot</h3>
+      <p class="ranking-insight">
+        In this dataset, <strong>${highestState.state}</strong> is highest at <strong>${formatPercent(highestState.burdenPct)}</strong>
+        while <strong>${lowestState.state}</strong> is lowest at <strong>${formatPercent(lowestState.burdenPct)}</strong>.
+        That is a <strong>${formatPercent(burdenGapPoints)}</strong> point spread, or about <strong>${d3.format(".1f")(burdenGapRatio)}x</strong> higher.
+      </p>
+
+      <div class="ranking-grid">
+        <section>
+          <h4 class="ranking-subtitle">Highest burden states</h4>
+          <ol class="ranking-list">
+            ${topBurden.map((d, index) => `
+              <li>
+                <span class="rank">${index + 1}</span>
+                <span class="state-name">${d.state}</span>
+                <span class="rank-value">${formatPercent(d.burdenPct)}</span>
+              </li>
+            `).join("")}
+          </ol>
+        </section>
+
+        <section>
+          <h4 class="ranking-subtitle">Lowest burden states</h4>
+          <ol class="ranking-list">
+            ${lowestBurden.map((d, index) => `
+              <li>
+                <span class="rank">${index + 1}</span>
+                <span class="state-name">${d.state}</span>
+                <span class="rank-value">${formatPercent(d.burdenPct)}</span>
+              </li>
+            `).join("")}
+          </ol>
+        </section>
+      </div>
     </div>
   `);
 }
